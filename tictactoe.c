@@ -367,6 +367,35 @@ int gameLoop(char grid[][3], int choice, int difficulty, int three_row){
 	return three_row;
 }
 
+int getMove(char grid[][3], char mark, int choice, int turn, int difficulty){	
+	bool move_ok = 0;
+	int move = 0;
+	
+	// get Human player move 
+	if(choice == '2' || (choice == '1' && mark == 'X')){	
+		while(move_ok != 1){				
+			printf("\nIt is %c's turn, place your mark: ", mark);
+			while((move = getchar()) == '\n');	
+		
+			move_ok = checkMove(grid, move);
+			if (move_ok != 1){
+				puts("Invalid move please try again...");
+				pressToContinue();
+				clearScreen();
+				drawGrid(grid);
+			} 
+		}
+	}
+	// get CPU move
+	else if (choice == '1' && mark == 'O'){		
+		while (move_ok != 1){	
+			move = cpuMove(grid, turn, difficulty);
+			move_ok = checkMove(grid, move);
+		}										
+	}
+	return move;	
+}
+
 void makeMove(char grid[][3], int move, char mark){	
 	/*
 	 * Example place mark at grid position '2' ([0][1]):
@@ -484,33 +513,4 @@ char switchMark(char mark){
 		mark = 'X';
 	}	
 	return mark;
-}
-
-int getMove(char grid[][3], char mark, int choice, int turn, int difficulty){	
-	bool move_ok = 0;
-	int move = 0;
-	
-	// get Human player move 
-	if(choice == '2' || (choice == '1' && mark == 'X')){	
-		while(move_ok != 1){				
-			printf("\nIt is %c's turn, place your mark: ", mark);
-			while((move = getchar()) == '\n');	
-		
-			move_ok = checkMove(grid, move);
-			if (move_ok != 1){
-				puts("Invalid move please try again...");
-				pressToContinue();
-				clearScreen();
-				drawGrid(grid);
-			} 
-		}
-	}
-	// get CPU move
-	else if (choice == '1' && mark == 'O'){		
-		while (move_ok != 1){	
-			move = cpuMove(grid, turn, difficulty);
-			move_ok = checkMove(grid, move);
-		}										
-	}
-	return move;	
 }
