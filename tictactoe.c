@@ -14,20 +14,17 @@
 #include <string.h>
 #include <time.h>
 
-bool checkMove(char grid[][3], int move, bool move_ok);
-int checkThree(char grid[][3], int three_row);
-int checkTwo(char grid[][3], int move);
+bool checkMove(char grid[][3], int move);
+bool checkThree(char grid[][3]);
+int checkTwo(char grid[][3]);
 void clearScreen(void);
-int cpuMove(char grid[][3], int move, int turn, int difficulty);
+int cpuMove(char grid[][3], int turn, int difficulty);
 void drawGrid(char grid[][3]);
 int gameLoop(char grid[][3], int choice, int difficulty, int three_row);
-int getMove(char grid[][3], int move, char mark, int choice, int turns, int difficulty);
+int getMove(char grid[][3], char mark, int choice, int turns, int difficulty);
 void makeMove(char grid[][3], int move, char mark);
-bool needMove(bool need_move, int nX, int nO, int result);
-int pickCpuMove(int move, int location);
 void pressToContinue(void);
 void resetGrid(char grid[][3]);
-void resetVars(int *nX_ptr, int *nO_ptr, int *result_ptr);
 int setDifficulty(int difficulty);
 int showMenu(int choice);
 void showScores(int n_owins, int n_xwins, int n_draws);
@@ -37,7 +34,7 @@ char switchMark(char mark);
 int main(void){
 	char grid[3][3] = {{'1','2','3'}, {'4','5','6'}, {'7','8','9'}};
 	int choice = 0;
-	int difficulty = '1';
+	int difficulty = '1'; 
 	int n_draws = 0;
 	int n_owins = 0;
 	int n_xwins = 0; 
@@ -76,204 +73,213 @@ int main(void){
 	return EXIT_SUCCESS;
 }
 
-bool checkMove(char grid[][3], int move, bool move_ok){
-	size_t column = 0;
-	size_t row = 0;
+bool checkMove(char grid[][3], int move){
+	/*
+	 * Check move by checking if 'move' converted to int
+	 * is equal to grid position.
+	 * 
+	 * Example check move '2' which is grid position ([0][1])
+	 * 
+	 * Row is 50 - 49 = 1 / 3 = 0.33 
+	 * Integer division so this is rounded down towards 0. 
+	 * Column = 50 - 49 = 1 % 3 = 1
+	 * Result [0][1] which on the grid is '2'.
+	 * 
+	 */
+	bool move_ok = 0;
 	
-	if (move >= '1' && move <= '9'){			
-		for (row = 0 ; row < 3; row++){
-				for(column = 0; column < 3 ; column++){
-					if (grid[row][column] == move){ 
-						move_ok = 1;	
-						goto end_checkmove;						
-					}	
-					else{
-						move_ok = 0;
-					}
-				}				
-		}		
+	if (move >= '1' && move <= '9'){
+		int row = (move - 49) / 3; 
+		int column = (move - 49) % 3;			
+		if(grid[row][column] == move){
+			move_ok = 1;
+		}
+		else{
+			move_ok = 0;
+		}
 	} else {
 		move_ok = 0;
 	}
 
-	end_checkmove:
 	return move_ok;
 }
 
-int checkThree(char grid[][3], int three_row){
+bool checkThree(char grid[][3]){
 	/*
 	 * This functions checks for 'three in a row' by checking the 
-	 * total decimal number in a row, column and diagonal.
-	 * 3 times decimal 79 (OOO) = 237
-	 * 3 times decimal 88 (XXX) = 264 
-	 * Returns 0 = draw, 1 = O wins, 2 = X wins
+	 * if the 3 adjacent grid cells have the same value ('X' or 'O')
+	 * Returns true if a three in a row is found.
 	 */
-	 
-	size_t column = 0;
-	size_t row = 0;
-	int result = 0;	
 
 	// check diagonal left to right
-	for (row = 0 ; row < 3; row++){
-		result = result + grid[row][row];
-		if (result == 237 || result == 264){
-			if (result == 237) {
-				three_row = 1;				
-			} else{
-				three_row = 2;
-			}			
-			goto return_result;
-		}	
-	}
-	result = 0;
-	
+	if (grid[0][0] == grid[1][1] && grid[1][1] == grid[2][2]) {
+		return true;
+	}	
 	// check diagonal right to left
-	for (row = 0 ; row < 3; row++){
-		result = result + grid[row][3 - row - 1];
-		if (result == 237 || result == 264){
-			if (result == 237) {
-				three_row = 1;				
-			} else{
-				three_row = 2;
-			}			
-			goto return_result;
-		}	
+	if (grid[0][2] == grid[1][1] && grid[1][1] == grid[2][0]) {
+		return true;
 	}
-	result = 0;
 
-	// check rows
-	for (row = 0 ; row < 3; row++){
-		result = grid[row][0]+grid[row][1]+grid[row][2];	
-		if (result == 237 || result == 264){
-			if (result == 237) {
-				three_row = 1;				
-			} else{
-				three_row = 2;
-			}			
-			goto return_result;
-		}	
+	// check first row
+	if (grid[0][0] == grid[0][1] && grid[0][1] == grid[0][2]) {
+		return true;
 	}
-	result = 0;
-	
-	// check columns
-	for (column = 0 ; column < 3; column++){
-		result = grid[0][column]+grid[1][column]+grid[2][column];	
-		if (result == 237 || result == 264){
-			if (result == 237) {
-				three_row = 1;
-			} else{
-				three_row = 2;
-			}
-		}	
+	// check second row
+	if (grid[1][0] == grid[1][1] && grid[1][1] == grid[1][2]) {
+		return true;
+	}
+	// check third row
+	if (grid[2][0] == grid[2][1] && grid[2][1] == grid[2][2]) {
+		return true;
+	}
+		
+	// check first column
+	if (grid[0][0] == grid[1][0] && grid[1][0] == grid[2][0]) {
+		return true;
+	}
+	// check second column
+	if (grid[0][1] == grid[1][1] && grid[1][1] == grid[2][1]) {
+		return true;
+	}
+	// check third column
+	if (grid[0][2] == grid[1][2] && grid[1][2] == grid[2][2]) {
+		return true;
 	}	
-
-	return_result:	
-	return three_row;
+	return false;
 }
 
-int checkTwo(char grid[][3], int move){
+int checkTwo(char grid[][3]){
 /*	
- *  This function checks if there are 2 XX's or OO's in a row,
- *	column or one of the diagonals and if a certain counter move by 
- *  the CPU is needed.  
- * 
- *	If needed it picks (randomly until the empty spot is found) a  
- * 	counter move from a set of possible moves to either prevent a loss   
- * 	or make a move to win the game.
- *  
+ *  This function checks if there are 2 grid cells with the same value
+ *  in a row, column or one of the diagonals and if a counter or
+ *  winning move is possible (there is no X or O in the cell).
+ *  It then returns a counter/winning move on the grid to make i.e. '1'  
+ *  to make a move for the top left position on the grid.
  */
-	size_t column = 0;
-	size_t row = 0;
-	
-	bool need_move = 0;
-	int nO = 0;
-	int nX = 0;
-	int result = 0;
 		
-	int *nX_ptr = &nX;
-	int *nO_ptr = &nO;
-	int *result_ptr = &result;	
-
-	// check diagonal left to right 
-	for (row = 0 ; row < 3; row++){
-		result = result + grid[row][row];
-		if(grid[row][row] == 'X'){
-			nX++;
+	// check diagonal left to right
+	if (grid[0][0] == grid[1][1] && grid[1][1] != grid[2][2]) {
+		if (checkMove(grid, '9')){
+			return '9';
 		}
-		else if (grid[row][row] == 'O'){
-			nO++;
-		}	
-	}	
-	need_move = needMove(need_move, nX, nO, result);
-	if (need_move == 1){
-		move = pickCpuMove(move, 1);		
-		goto return_move;
-	}	
-
-	resetVars(nX_ptr, nO_ptr, result_ptr);
-		
-	// check diagonal right to left 
-	for (row = 0 ; row < 3; row++){
-		result = result + grid[row][3 - row - 1]; 
-		if(grid[row][3 - row - 1] == 'X'){
-			nX++;
+	} else if (grid[0][0] != grid[1][1] && grid[1][1] == grid[2][2]) {
+		if (checkMove(grid, '1')){
+			return '1';
 		}
-		else if (grid[row][3 - row - 1] == 'O'){
-			nO++;
+	} 	else if (grid[0][0] == grid[2][2]) {
+		if (checkMove(grid, '5')){
+			return '5';
 		}
 	}
-	need_move = needMove(need_move, nX, nO, result);
-	if (need_move == 1){
-		move = pickCpuMove(move, 2);		
-		goto return_move;
-	}		 
+		
+	// check diagonal right to left
+	if (grid[0][2] == grid[1][1] && grid[1][1] != grid[2][0]) {
+		if (checkMove(grid, '7')){
+			return '7';
+		}
+	} else if (grid[0][2] != grid[1][1] && grid[1][1] == grid[2][0]) {
+		if (checkMove(grid, '3')){
+			return '3';
+		}
+	} 	else if (grid[0][2] == grid[2][0]) {
+		if (checkMove(grid, '5')){
+			return '5';
+		}
+	}
 
-	resetVars(nX_ptr, nO_ptr, result_ptr); 
-
-	// check rows 
-	for (row = 0 ; row < 3; row++){	
-		resetVars(nX_ptr, nO_ptr, result_ptr);
-		for(column = 0 ; column < 3; column++){
-			if(grid[row][column] == 'X'){
-				nX++;
-			}
-			else if(grid[row][column] == 'O'){
-				nO++;				
-			}
-			result = grid[row][0]+grid[row][1]+grid[row][2];	
-			need_move = needMove(need_move, nX, nO, result);
-			if (need_move == 1){
-				move = pickCpuMove(move, (int)row + 3); // location 3, 4, 5
-				goto return_move;
-			}	
-		}	
-	}	
-
-	resetVars(nX_ptr, nO_ptr, result_ptr);
+	// check first row 
+	if (grid[0][0] == grid[0][1] && grid[0][1] != grid[0][2]) {
+		if (checkMove(grid, '3')){
+			return '3';
+		}
+	} else if (grid[0][0] != grid[0][1] && grid[0][1] == grid[0][2]) {
+		if (checkMove(grid, '1')){
+			return '1';
+		}
+	} 	else if (grid[0][0] == grid[0][2]) {
+		if (checkMove(grid, '2')){
+			return '2';
+		}
+	}
 	
-	// check columns 
-	for (column = 0 ; column < 3; column++){	
-		resetVars(nX_ptr, nO_ptr, result_ptr);
-		for(row = 0 ; row < 3; row++){
-			if(grid[row][column] == 'X'){
-				nX++;
-			}
-			else if(grid[row][column] == 'O'){
-				nO++;				
-			}
-			result = grid[0][column]+grid[1][column]+grid[2][column];	
-			need_move = needMove(need_move, nX, nO, result);
-			if (need_move == 1){
-				move = pickCpuMove(move, (int)column + 6); // location 6, 7, 8
-				goto return_move;
-			}	
-		}	
-	}		
-
-	move = (rand() % 9) + 49; // Failsafe return random move.
-	return_move:	
-	return move;	
+	// check second row 	
+	if (grid[1][0] == grid[1][1] && grid[1][1] != grid[1][2]) {
+		if (checkMove(grid, '6')){
+			return '6';
+		}
+	} else if (grid[1][0] != grid[1][1] && grid[1][1] == grid[1][2]) {
+		if (checkMove(grid, '4')){
+			return '4';
+		}
+	} 	else if (grid[1][0] == grid[1][2]) {
+		if (checkMove(grid, '5')){
+			return '5';
+		}
+	}
+	
+	// check third row 
+	if (grid[2][0] == grid[2][1] && grid[2][1] != grid[2][2]) {
+		if (checkMove(grid, '9')){
+			return '9';
+		}
+	} else if (grid[2][0] != grid[2][1] && grid[2][1] == grid[2][2]) {
+		if (checkMove(grid, '7')){
+			return '7';
+		}
+	} 	else if (grid[2][0] == grid[2][2]) {
+		if (checkMove(grid, '8')){
+			return '8';
+		}
+	}
+	
+	// check first column  
+	if (grid[0][0] == grid[1][0] && grid[1][0] != grid[2][0]) {
+		if (checkMove(grid, '7')){
+			return '7';
+		}
+	} else if (grid[0][0] != grid[1][0] && grid[1][0] == grid[2][0]) {
+		if (checkMove(grid, '1')){
+			return '1';
+		}
+	} 	else if (grid[0][0] == grid[2][0]) {
+		if (checkMove(grid, '4')){
+			return '4';
+		}
+	}	
+	
+	// check second column  
+	if (grid[0][1] == grid[1][1] && grid[1][1] != grid[2][1]) {
+		if (checkMove(grid, '8')){
+			return '8';
+		}
+	} else if (grid[0][1] != grid[1][1] && grid[1][1] == grid[2][1]) {
+		if (checkMove(grid, '2')){
+			return '2';
+		}
+	} 	else if (grid[0][1] == grid[2][1]) {
+		if (checkMove(grid, '5')){
+			return '5';
+		}
+	}	
+	
+	// check third column
+	if (grid[0][2] == grid[1][2] && grid[1][2] != grid[2][2]) {
+		if (checkMove(grid, '9')){
+			return '9';
+		}
+	} else if (grid[0][2] != grid[1][2] && grid[1][2] == grid[2][2]) {
+		if (checkMove(grid, '3')){
+			return '3';
+		}
+	} 	else if (grid[0][2] == grid[2][2]) {
+		if (checkMove(grid, '6')){
+			return '6';
+		}
+	}	
+	
+	return (rand() % 9) + 49; // Failsafe return random move.	
 }
+
 
 void clearScreen(void){
     #if defined(__linux__) || defined(__unix__) || defined(__APPLE__)
@@ -285,10 +291,11 @@ void clearScreen(void){
     #endif
 }
 
-int cpuMove(char grid[][3], int move, int turn, int difficulty){
+int cpuMove(char grid[][3], int turn, int difficulty){
 	char first_turn[5] = {'1','3', '5', '7', '9'};
 	char second_turn[4] = {'1','3', '7', '9'};
 	int n = 0;	
+	int move = 0;
 	
 	if(turn == 1){
 		// First turn strategy - take center or a corner
@@ -296,16 +303,16 @@ int cpuMove(char grid[][3], int move, int turn, int difficulty){
 			move = first_turn[n];	
 	} else if (turn == 2){
 		// Second turn strategy - take center if possible else a corner
-		if(grid[1][1] != 'X' && grid[1][1] != 'O'){
+		if (grid[1][1] == '5'){
 			move = '5';
 		}
-		else if(grid[1][1] == 'X' || grid[1][1] == 'O'){
+		else {
 			n = rand() % 4;
 			move = second_turn[n];
 		}	
 	} else if (turn == 3){
 		// Third turn strategy - take center if possible else random move
-		if(grid[1][1] != 'X' && grid[1][1] != 'O'){
+		if(grid[1][1] == '5'){
 			move = '5';
 		}
 		else {
@@ -319,7 +326,7 @@ int cpuMove(char grid[][3], int move, int turn, int difficulty){
 		}
 		// hard
 		else if (difficulty == '2'){
-			move = checkTwo(grid, move); // Analyze grid and make move
+			move = checkTwo(grid); // Analyze grid and make move
 		}	 		
 	}	
 	return move;
@@ -343,78 +350,37 @@ int gameLoop(char grid[][3], int choice, int difficulty, int three_row){
 	while(turn != 10) {
 		clearScreen();
 		drawGrid(grid);
-		move = getMove(grid, move, mark, choice, turn, difficulty);
+		move = getMove(grid, mark, choice, turn, difficulty);
 		makeMove(grid, move, mark);	
+		three_row = checkThree(grid);
+		if(three_row){
+			if(mark == 'O'){
+				return 1;
+			}
+			else {
+				return 2;
+			}
+		}	
 		mark = switchMark(mark);
-		turn++;
-		three_row = checkThree(grid, three_row);
-		if(three_row == 1 || three_row == 2){
-			break;
-		}		
+		turn++;	
 	}
 	return three_row;
 }
 
 void makeMove(char grid[][3], int move, char mark){	
-	size_t column = 0;
-	size_t row = 0;
+	/*
+	 * Example place mark at grid position '2' ([0][1]):
+	 * 
+	 * Row is 50 - 49 = 1 / 3 = 0.33 
+	 * Integer division so this is rounded down towards 0. 
+	 * Column = 50 - 49 = 1 % 3 = 1
+	 * Result [0][1] which on the grid is '2'.
+	 * 
+	 */	
+	int row = (move - 49) / 3;
+	int column = (move - 49) % 3;
 	
-	for (row = 0 ; row < 3; row++){
-		for(column = 0; column < 3 ; column++){
-			if (grid[row][column] == move){ 
-				grid[row][column] = mark;						
-			}	
-		}				
-	}
-}
-
-bool needMove(bool need_move, int nX, int nO, int result){
-	if (nX == 2 || nO == 2){
-		if (result < 237){
-			need_move = 1;
-		}		 
-	} 
-	else{
-		need_move = 0;
-	}
-	return need_move;
-}
-
-int pickCpuMove(int move, int location){
-/*	
- *  Return a (random until empty spot is found) move from a 
- *  selection of moves based on where the sequence XX or OO was 
- *  found on the grid.
-*/
-	int n = 0;
-	char diag_LR[3] = {'1', '5', '9'}; // location 1 
-	char diag_RL[3] = {'3', '5', '7'}; // location 2
-	char row_One[3] = {'1', '2', '3'}; // location 3
-	char row_Two[3] = {'4', '5', '6'}; // location 4
-	char row_Three[3] = {'7', '8', '9'}; // location 5
-	char col_One[3] = {'1', '4', '7'}; // location 6
-	char col_Two[3] = {'2', '5', '8'}; // location 7
-	char col_Three[3] = {'3', '6', '9'}; // location 8
-	n = rand() % 3;
-	
-	if(location == 1){
-		move = diag_LR[n];
-	} else if(location == 2){
-		move = diag_RL[n];
-	} else if(location == 3){
-		move = row_One[n];
-	} else if (location == 4){
-		move = row_Two[n];
-	} else if (location == 5){
-		move = row_Three[n];
-	} else if(location == 6){
-		move = col_One[n];
-	} else if (location == 7){
-		move = col_Two[n];
-	} else if (location == 8){
-		move = col_Three[n];
-	}
-	return move;
+	grid[row][column] = mark;						
 }
 
 void pressToContinue(void){
@@ -436,11 +402,6 @@ void resetGrid(char grid[][3]){
 	}	
 	
 }
-void resetVars(int *nX_ptr, int *nO_ptr, int *result_ptr){
-	*nX_ptr = 0;
-	*nO_ptr = 0;
-	*result_ptr = 0;	
-}
 
 int setDifficulty(int difficulty){
 	int input = 0;
@@ -458,22 +419,25 @@ int setDifficulty(int difficulty){
 	input = getchar();
 	
 	if (input == '1'){				
-		difficulty = '1';				
 		puts("Difficulty set to EASY");
+		pressToContinue();	
+		return '1';
 	} else if (input == '2'){
-		difficulty = '2';	
 		puts("Difficulty set to HARD");
+		pressToContinue();	
+		return '2';
 	}
 	else{
 		puts("\nInvalid choice!");
+		puts("Difficulty unchanged.");
+		pressToContinue();	
+		return difficulty;
 	}	
-	pressToContinue();	
-	return difficulty;
 }
 
 int showMenu(int choice){
 	clearScreen();
-	puts("\nTIC TAC TOE v1.0 by Reslashd");
+	puts("\nTIC TAC TOE v2.0 by Reslashd");
 	puts("\n******* MENU *******\n");
 	puts("1 = 1 Player vs CPU");
 	puts("2 = 2 Players");
@@ -516,14 +480,15 @@ char startingMark(char mark, int choice){
 char switchMark(char mark){
 	if (mark == 'X'){
 		mark = 'O';
-	} else if (mark == 'O') {
+	} else {
 		mark = 'X';
 	}	
 	return mark;
 }
 
-int getMove(char grid[][3], int move, char mark, int choice, int turn, int difficulty){	
+int getMove(char grid[][3], char mark, int choice, int turn, int difficulty){	
 	bool move_ok = 0;
+	int move = 0;
 	
 	// get Human player move 
 	if(choice == '2' || (choice == '1' && mark == 'X')){	
@@ -531,7 +496,7 @@ int getMove(char grid[][3], int move, char mark, int choice, int turn, int diffi
 			printf("\nIt is %c's turn, place your mark: ", mark);
 			while((move = getchar()) == '\n');	
 		
-			move_ok = checkMove(grid, move, move_ok);
+			move_ok = checkMove(grid, move);
 			if (move_ok != 1){
 				puts("Invalid move please try again...");
 				pressToContinue();
@@ -543,8 +508,8 @@ int getMove(char grid[][3], int move, char mark, int choice, int turn, int diffi
 	// get CPU move
 	else if (choice == '1' && mark == 'O'){		
 		while (move_ok != 1){	
-			move = cpuMove(grid, move, turn, difficulty);
-			move_ok = checkMove(grid, move, move_ok);
+			move = cpuMove(grid, turn, difficulty);
+			move_ok = checkMove(grid, move);
 		}										
 	}
 	return move;	
